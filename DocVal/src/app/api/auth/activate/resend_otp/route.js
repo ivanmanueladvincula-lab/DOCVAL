@@ -2,9 +2,7 @@ import { getConnection } from "@/app/api/helper/db";
 import sql from "mssql";
 import bcrypt from "bcrypt";
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
-import ActivateAccountEmail from "@/helper/emailTemplates/active_account";
-import { getErrorMessage } from "@/app/api/helper/errorHandler";
+import nodemailer from "nodemailer";
 
 export async function POST(request) {
   try {
@@ -15,70 +13,60 @@ export async function POST(request) {
     }
 
     const pool = await getConnection();
-
     const userRes = await pool.request()
       .input("email", sql.VarChar(255), email)
       .execute("dbo.checkEmail");
 
-    if (userRes.recordset.length === 0) {
+    if (!userRes.recordset || userRes.recordset.length === 0) {
       return NextResponse.json({ message: "Invalid email" }, { status: 404 });
     }
 
     const user = userRes.recordset[0];
 
-    if (user.status === "Active") {
-      return NextResponse.json(
-        { message: "Account is already active" },
-        { status: 400 }
-      );
-    }
-
-    await pool.request()
-  .input("user_id", sql.UniqueIdentifier, user.id)
-  .execute("dbo.deleteOtpByUser");  // ✅ correct
 
     // Generate new OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
     const expires_at = new Date();
-    expires_at.setHours(expires_at.getHours() + 24);
+    expires_at.setHours(expires_at.getHours() + 24); // Valid for 24 hours
 
+    // Save new OTP
     await pool.request()
       .input("otp", sql.VarChar(255), hashedOtp)
       .input("user_id", sql.UniqueIdentifier, user.id)
       .input("expires_at", sql.DateTime, expires_at)
       .execute("dbo.createOtp");
 
-    // Send email
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
-      from: "Acme <onboarding@resend.dev>",
-      to: [email],
-      subject: "DocVal Account Activation",
-      react: ActivateAccountEmail({
-        name: email,
-        otp,
-        email,
-        activateLink: `http://localhost:3000/auth/activate?email=${encodeURIComponent(email)}&otp=${otp}`,
-        expiryTime: "24 hours",
-      }),
+    // Send email via Nodemailer
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
     });
 
-    if (error) {
-      return NextResponse.json(
-        { message: "Failed to send email", error: error.message },
-        { status: 500 }
-      );
-    }
+    await transporter.sendMail({
+      from: `"DocVal System" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "DocVal Account Activation",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Activate your DocVal Account</h2>
+            <p>Your new OTP is: <strong style="font-size: 24px;">${otp}</strong></p>
+            <p>This code is valid for 24 hours.</p>
+        </div>
+      `,
+    });
 
     return NextResponse.json(
       { message: "OTP sent successfully" },
       { status: 200 }
     );
   } catch (err) {
-    console.error(err);
+    console.error("Resend OTP Error:", err);
     return NextResponse.json(
-      { message: "Server error", error: getErrorMessage(err) },
+      { message: "Server error", error: err.message },
       { status: 500 }
     );
   }

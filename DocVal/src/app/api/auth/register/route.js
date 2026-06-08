@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import sql from "mssql";
 import bcrypt from "bcrypt";
 import { getConnection } from "@/app/api/helper/db";
-import { Resend } from "resend";
-import ActivateAccountEmail from "@/helper/emailTemplates/active_account";
 import { getErrorMessage } from "@/app/api/helper/errorHandler";
+import nodemailer from "nodemailer"; // 1. Swapped Resend for Nodemailer
 
 export async function POST(request) {
   try {
@@ -21,7 +20,7 @@ export async function POST(request) {
       .input("email", sql.VarChar(255), email)
       .execute("dbo.checkEmail");
 
-    if (selectRes.recordset.length > 0) {
+    if (selectRes.recordset && selectRes.recordset.length > 0) {
       return NextResponse.json({ message: "User already exists" }, { status: 400 });
     }
 
@@ -35,20 +34,31 @@ export async function POST(request) {
     // Prepare role table-valued parameter
     const roleTable = new sql.Table();
     roleTable.columns.add("RoleIdList", sql.UniqueIdentifier);
-    (role || []).forEach((r) => roleTable.rows.add(r));
+    if (role && role.length > 0) {
+        role.forEach((r) => roleTable.rows.add(r));
+    }
 
     // Register user with Pending status, division = NULL
-    const insertRes = await pool.request()
+    await pool.request()
       .input("f_name", sql.VarChar(100), f_name || "")
       .input("m_name", sql.VarChar(100), m_name || "")
       .input("l_name", sql.VarChar(100), l_name || "")
       .input("email", sql.VarChar(255), email)
       .input("password", sql.VarChar(255), placeholderPassword)
       .input("role", roleTable)
-      .input("division", sql.UniqueIdentifier, null) // ✅ always NULL on register
+      .input("division", sql.UniqueIdentifier, null)
       .execute("dbo.registerUser");
 
-    const user_id = insertRes.recordset[0]?.id;
+    // 2. FIX: Safely fetch the newly generated User ID 
+    const newUserCheck = await pool.request()
+      .input("email", sql.VarChar(255), email)
+      .execute("dbo.checkEmail");
+
+    if (!newUserCheck.recordset || newUserCheck.recordset.length === 0) {
+        throw new Error("Failed to retrieve new user ID after registration.");
+    }
+
+    const user_id = newUserCheck.recordset[0].id;
 
     // Store OTP (expires in 24 hours)
     const expires_at = new Date();
@@ -60,34 +70,42 @@ export async function POST(request) {
       .input("expires_at", sql.DateTime, expires_at)
       .execute("dbo.createOtp");
 
-    // Send activation email
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
-      from: "Acme <onboarding@resend.dev>",
-      to: [email],
-      subject: "DocVal Account Activation",
-      react: ActivateAccountEmail({
-        name: `${f_name} ${l_name}`,
-        otp,
-        email: email,
-        activateLink: `http://localhost:3000/auth/activate?email=${encodeURIComponent(email)}&otp=${otp}`,
-        expiryTime: "24 hours",
-      }),
+    // 3. FIX: Send activation email using Nodemailer
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
     });
 
-    if (error) {
-      return NextResponse.json(
-        { message: "User created, but failed to send email" },
-        { status: 210 }
-      );
-    }
+    const activateLink = `http://localhost:3000/auth/activate?email=${encodeURIComponent(email)}`;
+
+    await transporter.sendMail({
+      from: `"DocVal System" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "DocVal Account Activation",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Welcome to DocVal, ${f_name}!</h2>
+          <p>Your account has been successfully created. Please activate it using the OTP code below:</p>
+          <div style="margin: 20px 0; font-size: 24px; font-weight: bold; letter-spacing: 2px;">
+            ${otp}
+          </div>
+          <p>You can activate your account here: <br>
+            <a href="${activateLink}" style="color: #1d4ed8;">${activateLink}</a>
+          </p>
+          <p style="color: #666; font-size: 14px;">This code will expire in 24 hours.</p>
+        </div>
+      `,
+    });
 
     return NextResponse.json(
-      { message: "User registered successfully. Activation email sent.", body: insertRes.recordset },
+      { message: "User registered successfully. Activation email sent." },
       { status: 201 }
     );
   } catch (err) {
-    console.error(err);
+    console.error("Registration Error:", err);
     return NextResponse.json(
       { message: "Server error", error: getErrorMessage(err) },
       { status: 500 }

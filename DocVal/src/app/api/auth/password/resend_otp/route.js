@@ -1,69 +1,77 @@
 import { getConnection } from "@/app/api/helper/db";
 import sql from "mssql";
-import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { Resend } from "resend";
-import ResetOTPEmail from "@/helper/emailTemplates/reset_otp";
+import { NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 
 export async function POST(request) {
   try {
-    const { user_id } = await request.json();
+    const { email } = await request.json();
+
+    if (!email) {
+      return NextResponse.json({ message: "Email is required" }, { status: 400 });
+    }
 
     const pool = await getConnection();
+    const userRes = await pool.request()
+      .input("email", sql.VarChar(255), email)
+      .execute("dbo.checkEmail");
 
-    // get email
-    const selectReq = pool.request();
-    const selectRes = await selectReq
-      .input("userId", sql.UniqueIdentifier, user_id)
-      .execute("dbo.getEmail");
+    if (!userRes.recordset || userRes.recordset.length === 0) {
+      return NextResponse.json({ message: "Invalid email" }, { status: 404 });
+    }
 
-    const email = selectRes.recordset[0]?.email;
+    const user = userRes.recordset[0];
 
-    // create otp
+    // Cleanup old OTPs
+    await pool.request()
+      .input("user_id", sql.UniqueIdentifier, user.id)
+      .execute("dbo.deleteOtpByUser");
+
+    // Generate new OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // hash otp
     const hashedOtp = await bcrypt.hash(otp, 10);
     const expires_at = new Date();
-    expires_at.setMinutes(expires_at.getMinutes() + 10); // otp valid for 10 minutes
+    expires_at.setHours(expires_at.getHours() + 24); // Valid for 24 hours
 
-    // store otp hash in db
-    const storeOtpReq = pool.request();
-    await storeOtpReq
+    // Save new OTP
+    await pool.request()
       .input("otp", sql.VarChar(255), hashedOtp)
-      .input("user_id", sql.UniqueIdentifier, user_id)
+      .input("user_id", sql.UniqueIdentifier, user.id)
       .input("expires_at", sql.DateTime, expires_at)
       .execute("dbo.createOtp");
 
-    // send otp to email
-    // kunyari email muna  to
-
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { data, error } = await resend.emails.send({
-      from: "Acme <onboarding@resend.dev>",
-      to: [email],
-      subject: "DocVal Reset Password OTP",
-      react: ResetOTPEmail({ otp, expiryTime: `10 minutes` }),
+    // Send email via Nodemailer
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
     });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // console.log(`Sending OTP ${otp}`);
+    await transporter.sendMail({
+      from: `"DocVal System" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "DocVal Account Activation",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Activate your DocVal Account</h2>
+            <p>Your new OTP is: <strong style="font-size: 24px;">${otp}</strong></p>
+            <p>This code is valid for 24 hours.</p>
+        </div>
+      `,
+    });
 
     return NextResponse.json(
-      {
-        message: `OTP succcessfully resent`,
-        body: { user_id }, // remove otp in production
-      },
-      { status: 200 },
+      { message: "OTP sent successfully" },
+      { status: 200 }
     );
-  } catch (error) {
-    console.error("Error checking email:", error);
+  } catch (err) {
+    console.error("Resend OTP Error:", err);
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 },
+      { message: "Server error", error: err.message },
+      { status: 500 }
     );
   }
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getConnection } from "../helper/db";
 import { authenticateToken } from "../helper/authenticateToken";
 
-export async function GET(request) {
+export async function POST(request) {
   try {
     const auth = await authenticateToken(request);
     if (auth.error) {

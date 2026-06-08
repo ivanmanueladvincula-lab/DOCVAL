@@ -4,14 +4,21 @@ import { getConnection } from "@/app/api/helper/db";
 import { authenticateToken } from "@/app/api/helper/authenticateToken";
 import { getErrorMessage } from "@/app/api/helper/errorHandler";
 
-export async function POST(request) {
+export async function GET(request) {
   try {
     const auth = await authenticateToken(request);
+    
+    // Stop crash if auth fails
     if (auth.error) {
-      return auth.error;
+      return NextResponse.json(
+        { message: "Authentication failed", error: auth.error }, 
+        { status: 401 }
+      );
     }
 
-    const userId = auth.user.uid;
+    // THE CRITICAL FIX: It must be .uid based on your generateToken.js payload
+    const userId = auth.user.uid; 
+    
     const pool = await getConnection();
     const selectReq = pool.request();
     const selectRes = await selectReq

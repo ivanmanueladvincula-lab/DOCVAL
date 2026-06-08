@@ -63,9 +63,9 @@ export async function POST(request) {
 
     // Activate account
     await pool.request()
-      .input("user_id", sql.UniqueIdentifier, user.id)
-      .input("password", sql.VarChar(255), hashedPassword)
-      .execute("dbo.activateAccount");
+      .input("email", sql.VarChar(255), email)
+      .input("password", sql.VarChar(255), hashedPassword) 
+      .query("UPDATE tbl_user SET password = @password WHERE email = @email");
 
     // Delete used OTP
     await pool.request()

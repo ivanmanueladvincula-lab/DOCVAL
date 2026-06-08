@@ -97,7 +97,7 @@ export default function files() {
       .catch((error) => setError("Error fetching offices", "error"));
 
     axiosInstance
-      .post("/document/getFileByUser")
+      .get("/document/getFileByUser")
       .then((res) => {
         setFiles(res.body);
         setLoading(false);
@@ -107,7 +107,7 @@ export default function files() {
         setError("Failed to fetch documents. Please try again.", "error");
         setLoading(false);
       });
-  }, [setError]);
+  }, []);
 
   const visibleRows = useMemo(() => {
     let filtered = files.filter((file) => {
