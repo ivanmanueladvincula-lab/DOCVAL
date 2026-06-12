@@ -2,7 +2,6 @@ import { getConnection } from "@/app/api/helper/db";
 import sql from "mssql";
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
-import { getErrorMessage } from "@/app/api/helper/errorHandler";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -40,19 +39,22 @@ export async function POST(request) {
 
     // Save URL to DB
     const pool = await getConnection();
+    
+    // THE FIX: Use a direct SQL query instead of a missing stored procedure
     await pool.request()
       .input("user_id", sql.UniqueIdentifier, user_id)
       .input("profile_img", sql.VarChar(500), uploadResult.secure_url)
-      .execute("dbo.updateProfileImg");
+      .query("UPDATE tbl_user SET profile_img = @profile_img WHERE id = @user_id");
 
     return NextResponse.json(
       { message: "Profile image updated!", url: uploadResult.secure_url },
       { status: 200 }
     );
   } catch (err) {
-    console.error(err);
+    // THE FIX: Safe error logging that won't crash the server
+    console.error("Profile Upload Error:", err);
     return NextResponse.json(
-      { message: "Server error", error: getErrorMessage(err) },
+      { message: "Server error", error: err?.message || "Unknown error" },
       { status: 500 }
     );
   }

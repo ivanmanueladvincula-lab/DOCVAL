@@ -21,17 +21,46 @@ export async function POST(request) {
     }
 
     const pool = await getConnection();
-    const deleteReq = pool.request();
-    const deleteRes = await deleteReq
-      .input("userId", sql.UniqueIdentifier, userId)
-      .execute("dbo.deleteAccount");
+    
+    // 1. CHECK FOR DOCUMENTS: Prevent deletion if they own official files
+    const checkReq = pool.request();
+    checkReq.input("userId", sql.UniqueIdentifier, userId);
+    const checkRes = await checkReq.query("SELECT COUNT(*) AS docCount FROM tbl_file WHERE created_by = @userId");
+    
+    if (checkRes.recordset[0].docCount > 0) {
+        return NextResponse.json(
+            { message: "Cannot delete user: This account has created official documents. Please edit the account and remove their roles/division to disable them instead." },
+            { status: 409 } // 409 Conflict
+        );
+    }
 
-    return NextResponse.json({
-      message: "User account deleted successfully",
-      body: deleteRes.recordset,
-    });
+    // 2. SAFE DELETE: Clean up roles and OTPs before deleting the user
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+
+    try {
+        const txReq = new sql.Request(transaction);
+        txReq.input("userId", sql.UniqueIdentifier, userId);
+        
+        // Delete dependent records first to satisfy Foreign Key constraints
+        await txReq.query("DELETE FROM tbl_user_role WHERE user_id = @userId");
+        await txReq.query("DELETE FROM tbl_otp WHERE user_id = @userId");
+        
+        // Finally, safely delete the user
+        await txReq.query("DELETE FROM tbl_user WHERE id = @userId");
+
+        await transaction.commit();
+
+        return NextResponse.json({
+            message: "User account safely deleted",
+        });
+    } catch (txErr) {
+        await transaction.rollback();
+        throw txErr;
+    }
+
   } catch (err) {
-    console.error(err);
+    console.error("Delete User Error:", err);
     return NextResponse.json(
       { message: "Server error", error: getErrorMessage(err) },
       { status: 500 },

@@ -1,92 +1,45 @@
-import { authenticateToken } from "../../helper/authenticateToken";
-import { getConnection } from "../../helper/db";
-import sql from "mssql";
 import { NextResponse } from "next/server";
+import sql from "mssql";
+import { getConnection } from "@/app/api/helper/db";
 
 export async function POST(request) {
   try {
-    // validate berear
-    const auth = await authenticateToken(request);
-    if (auth.error) {
-      return auth.error;
-    }
-
-    const { userId, newFName, newMName, newLName, newEmail, newDiv, newRole } =
-      await request.json();
-
-    if (!userId) {
-      return NextResponse.json(
-        { message: "User ID is required" },
-        { status: 400 },
-      );
-    }
-
-    const updatedFields = [];
+    const body = await request.json();
+    const { userId, newFName, newMName, newLName, newEmail, newDiv, newRole } = body;
 
     const pool = await getConnection();
-    const updateReq = pool.request();
-    updateReq.input("userId", sql.UniqueIdentifier, userId);
+    const req = pool.request();
 
-    if (newFName?.trim()) {
-      updatedFields.push("First Name");
-      updateReq.input("newFName", sql.VarChar(255), newFName.trim());
-    }
-    if (newMName?.trim()) {
-      updatedFields.push("Middle Name");
-      updateReq.input("newMName", sql.VarChar(255), newMName.trim());
-    }
-    if (newLName?.trim()) {
-      updatedFields.push("Last Name");
-      updateReq.input("newLName", sql.VarChar(255), newLName.trim());
-    }
-    if (newEmail?.trim()) {
-      updatedFields.push("Email");
-      updateReq.input("newEmail", sql.VarChar(255), newEmail.trim());
-    }
-    if (newDiv?.trim()) {
-      updatedFields.push("Division");
-      updateReq.input("newDiv", sql.UniqueIdentifier, newDiv.trim());
-    }
-    if (newRole) {
-      const roleTable = new sql.Table();
-      roleTable.columns.add("RoleIdList", sql.UniqueIdentifier);
-      (newRole || []).forEach((r) => roleTable.rows.add(r));
-      updatedFields.push("Role");
-      updateReq.input("newRole", roleTable);
-    } else {
-      const roleTable = new sql.Table();
-      roleTable.columns.add("RoleIdList", sql.UniqueIdentifier);
-      updateReq.input("newRole", roleTable);
-    }
+    req.input("userId", sql.UniqueIdentifier, userId);
+    if (newFName) req.input("newFName", sql.VarChar, newFName);
+    if (newMName) req.input("newMName", sql.VarChar, newMName);
+    if (newLName) req.input("newLName", sql.VarChar, newLName);
+    if (newEmail) req.input("newEmail", sql.VarChar, newEmail);
+    if (newDiv) req.input("newDiv", sql.UniqueIdentifier, newDiv);
 
-    // console.log("Executing stored procedure with inputs:", updatedFields);
-    const updateRes = await updateReq.execute("dbo.editUser");
-    const updatedUser = updateRes.recordset?.[0] || null;
+    // ✅ THE FIX: Create a proper SQL Table object for the RoleIdList
+    const tvp = new sql.Table("dbo.RoleIdList");
+    tvp.columns.add("role_id", sql.UniqueIdentifier);
+    
+    // Add each selected role to the table rows
+    if (newRole && Array.isArray(newRole)) {
+        newRole.forEach(id => tvp.rows.add(id));
+    }
+    
+    // Pass the formatted table to the stored procedure
+    req.input("newRole", tvp);
 
-    const message = updatedFields.length
-      ? `Updated fields: ${updatedFields.join(", ")}`
-      : "No fields were updated";
+    const result = await req.execute("dbo.editUser");
 
-    return NextResponse.json(
-      {
-        message,
-        body: updatedUser,
-        newData: {
-          firstName: newFName,
-          middleName: newMName,
-          lastName: newLName,
-          email: newEmail,
-          divisionId: newDiv,
-          role: newRole,
-        },
-      },
-      { status: 200 },
-    );
+    return NextResponse.json({ 
+        message: "User updated successfully", 
+        body: result.recordset[0] 
+    });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { message: "Server error", error: error.message },
-      { status: 500 },
-    );
+    console.error("Edit User Error:", error);
+    return NextResponse.json({ 
+        message: "Server error", 
+        error: error.message 
+    }, { status: 500 });
   }
 }
