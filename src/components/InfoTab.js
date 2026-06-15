@@ -1,15 +1,7 @@
 "use client";
 
-import {
-  Chip,
-  IconButton,
-  Stack,
-  Typography,
-  Divider,
-  Box,
-  Button,
-} from "@mui/material";
-import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
+import { IconButton, Button } from "@mui/material";
+import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import StopCircleRoundedIcon from "@mui/icons-material/StopCircleRounded";
 import axiosInstance from "@/helper/Axios";
@@ -17,6 +9,26 @@ import { useError } from "@/helper/ErrorContext";
 import { useProtectedRoute } from "@/helper/ProtectedRoutes";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
+// Reusable Card Component for Info Sections
+const InfoCard = ({ title, children }) => (
+  <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 rounded-xl p-5 mb-5 shadow-sm">
+    <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 mb-4 tracking-wide">{title}</h3>
+    <div className="space-y-3">{children}</div>
+  </div>
+);
+
+// Reusable Row Component for Key-Value Pairs
+const InfoRow = ({ label, value }) => (
+  <div className="flex justify-between items-start gap-4">
+    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider min-w-[130px] pt-0.5">
+      {label}
+    </span>
+    <span className="text-sm font-semibold text-slate-900 dark:text-white text-right break-words flex-1">
+      {value || "—"}
+    </span>
+  </div>
+);
 
 export default function InfoTab({ data }) {
   const router = useRouter();
@@ -27,18 +39,12 @@ export default function InfoTab({ data }) {
 
   const openFile = () => {
     axiosInstance
-      .post(
-        "/document/downloadFile",
-        { fileName: data?.url },
-        { responseType: "blob" },
-      )
+      .post("/document/downloadFile", { fileName: data?.url }, { responseType: "blob" })
       .then((res) => {
         const url = window.URL.createObjectURL(res);
         window.open(url);
       })
-      .catch(() => {
-        setError("Failed to open the file. Please try again.", "error");
-      });
+      .catch(() => setError("Failed to open the file. Please try again.", "error"));
   };
 
   const toBase64 = (file) =>
@@ -51,17 +57,10 @@ export default function InfoTab({ data }) {
 
   const handleGenerate = () => {
     setLoading(true);
-
     axiosInstance
-      .post(
-        "/document/downloadFile",
-        { fileName: data?.url },
-        { responseType: "blob" },
-      )
+      .post("/document/downloadFile", { fileName: data?.url }, { responseType: "blob" })
       .then(async (res) => {
-        const base64 = await toBase64(res).catch(() => {
-          setError("Error reading file", "error");
-        });
+        const base64 = await toBase64(res).catch(() => setError("Error reading file", "error"));
         generateReport(base64);
       })
       .catch(() => {
@@ -72,19 +71,14 @@ export default function InfoTab({ data }) {
 
   const generateReport = (base64) => {
     abortControllerRef.current = new AbortController();
-
     axiosInstance
       .post(
         "/document/generateReport",
-        {
-          base64_data: base64,
-          document_type: data?.doc_type,
-        },
-        { signal: abortControllerRef.current.signal },
+        { base64_data: base64, document_type: data?.doc_type },
+        { signal: abortControllerRef.current.signal }
       )
       .then((res) => {
         setError("Report generated successfully!", "success");
-
         const request = indexedDB.open("docval_db", 1);
 
         request.onupgradeneeded = (event) => {
@@ -114,7 +108,7 @@ export default function InfoTab({ data }) {
               file_name: data?.url,
               report_id: reportId,
               generation_date: new Date().toISOString().split("T")[0],
-            }),
+            })
           );
 
           router.push(`/incoming/report`);
@@ -140,216 +134,69 @@ export default function InfoTab({ data }) {
     }
   };
 
-  const rowSx = {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 2,
-  };
-
-  const labelSx = {
-    color: "text.primary",
-    fontWeight: 700,
-    opacity: 0.85,
-    minWidth: 140,
-  };
-
-  const valueSx = {
-    color: "text.primary",
-    fontWeight: 800,
-    textAlign: "right",
-    wordBreak: "break-word",
-    flex: 1,
-  };
-
   return (
-    <Stack spacing={2}>
-      {/* Document Details Section */}
-      <Box>
-        <Typography
-          variant="subtitle2"
-          sx={{ mb: 1, fontWeight: 900, color: "text.primary" }}
-        >
-          Document Details
-        </Typography>
+    <div className="space-y-2">
+      <InfoCard title="Document Details">
+        <InfoRow label="Control No." value={data?.id ? data.id.slice(0, 8).toUpperCase() : null} />
+        <InfoRow label="Reference No." value={data?.reference_no} />
+        <InfoRow label="Title" value={data?.title} />
+        <InfoRow label="Document Type" value={data?.doc_type} />
+        <InfoRow label="Classification" value={data?.doc_class} />
+      </InfoCard>
 
-        <Stack spacing={1}>
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Control No.:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {/* ✅ Show only first 8 characters of GUID */}
-              {data?.id ? data.id.slice(0, 8).toUpperCase() : "—"}
-            </Typography>
-          </Box>
+      <InfoCard title="Sender Information">
+        <InfoRow label="Office" value={data?.sender_office} />
+        <InfoRow label="Contact Person" value={data?.sender_person} />
+        <InfoRow label="Email" value={data?.sender_email} />
+        <InfoRow label="Phone" value={data?.sender_phone} />
+      </InfoCard>
 
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Reference No.:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {data?.reference_no || "—"}
-            </Typography>
-          </Box>
-
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Title:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {data?.title || "—"}
-            </Typography>
-          </Box>
-
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Document Type:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {data?.doc_type || "—"}
-            </Typography>
-          </Box>
-
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Classification:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {data?.doc_class || "—"}
-            </Typography>
-          </Box>
-        </Stack>
-      </Box>
-
-      <Divider />
-
-      {/* Sender Details Section */}
-      <Box>
-        <Typography
-          variant="subtitle2"
-          sx={{ mb: 1, fontWeight: 900, color: "text.primary" }}
-        >
-          Sender Information
-        </Typography>
-
-        <Stack spacing={1}>
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Office:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {data?.sender_office || "—"}
-            </Typography>
-          </Box>
-
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Contact Person:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {data?.sender_person || "—"}
-            </Typography>
-          </Box>
-
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Email:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {data?.sender_email || "—"}
-            </Typography>
-          </Box>
-
-          <Box sx={rowSx}>
-            <Typography variant="body2" sx={labelSx}>
-              Phone:
-            </Typography>
-            <Typography variant="body2" sx={valueSx}>
-              {data?.sender_phone || "—"}
-            </Typography>
-          </Box>
-        </Stack>
-      </Box>
-
-      <Divider />
-
-      {/* Receiving Office Section - Display if not null */}
       {data?.receiving_office && (
-        <>
-          <Box>
-            <Typography
-              variant="subtitle2"
-              sx={{ mb: 1, fontWeight: 900, color: "text.primary" }}
-            >
-              Receiving Office
-            </Typography>
-            <Typography variant="body2" sx={{ ...valueSx, textAlign: "left" }}>
-              {data?.receiving_office}
-            </Typography>
-          </Box>
-          <Divider />
-        </>
+        <InfoCard title="Receiving Office">
+          <InfoRow label="Target Office" value={data?.receiving_office} />
+        </InfoCard>
       )}
 
-      {/* File Section */}
-      <Box>
-        <Typography
-          variant="subtitle2"
-          sx={{ mb: 1, fontWeight: 900, color: "text.primary" }}
-        >
-          Attached File
-        </Typography>
+      {/* Styled Attached File Card */}
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded-lg flex-shrink-0">
+            <DescriptionRoundedIcon className="text-red-500 dark:text-red-400" />
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-0.5">Attached File</p>
+            <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[250px] sm:max-w-[300px]">
+              {data?.url || "No file attached"}
+            </p>
+          </div>
+        </div>
+        <IconButton size="small" onClick={openFile} className="bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 flex-shrink-0">
+          <LaunchRoundedIcon fontSize="small" className="text-slate-600 dark:text-slate-300" />
+        </IconButton>
+      </div>
 
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Chip
-            label={data?.url || "—"}
-            variant="outlined"
-            icon={<PictureAsPdfRoundedIcon color="error" />}
-            sx={{
-              borderStyle: "dashed",
-              bgcolor: "#f7f7f7ff",
-              fontWeight: 700,
-              color: "text.primary",
-              maxWidth: 380,
-              "& .MuiChip-label": {
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              },
-            }}
-          />
+      {session?.user?.division_id === data?.receiving_office_id && data?.report === null && (
+        <div className="flex items-center gap-3 pt-4">
+          <Button
+            fullWidth
+            variant="contained"
+            className="bg-[#2563EB] hover:bg-blue-700 shadow-none py-2.5 font-bold"
+            onClick={handleGenerate}
+            disabled={loading}
+          >
+            {loading ? "Generating Report..." : "Generate AI Report"}
+          </Button>
 
-          <IconButton size="small" onClick={openFile}>
-            <LaunchRoundedIcon fontSize="small" />
+          <IconButton
+            size="large"
+            disabled={!loading}
+            onClick={abortGenerateReport}
+            className={`border ${loading ? 'border-red-200 bg-red-50 hover:bg-red-100' : 'border-slate-200 bg-slate-50'}`}
+          >
+            <StopCircleRoundedIcon color={loading ? "error" : "disabled"} />
           </IconButton>
-        </Stack>
-      </Box>
-
-      {session?.user?.division_id === data?.receiving_office_id &&
-        data?.report === null && (
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Button
-              fullWidth
-              variant="contained"
-              color="success"
-              onClick={handleGenerate}
-              disabled={loading}
-            >
-              {loading ? "Generating..." : "Generate Report"}
-            </Button>
-
-            <IconButton
-              size="small"
-              disabled={!loading}
-              onClick={abortGenerateReport}
-            >
-              <StopCircleRoundedIcon
-                fontSize="small"
-                color={loading ? "error" : "disabled"}
-              />
-            </IconButton>
-          </Stack>
-        )}
-    </Stack>
+        </div>
+      )}
+    </div>
   );
 }

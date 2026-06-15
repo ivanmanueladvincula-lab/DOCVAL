@@ -47,7 +47,6 @@ export default function DocumentTypeTab({ data, isActive }) {
       axiosInstance
         .get("/document/getAllDocType")
         .then((res) => {
-          // console.log(res.body);
           setDocumentTypes(res.body);
           setLoading(false);
         })
@@ -105,7 +104,7 @@ export default function DocumentTypeTab({ data, isActive }) {
 
   const paginationSection = (
     <>
-      <Divider />
+      <Divider className="dark:border-slate-800" />
       <TablePagination
         rowsPerPageOptions={[5, 10, 25]}
         component="div"
@@ -115,6 +114,7 @@ export default function DocumentTypeTab({ data, isActive }) {
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
         sx={{
+          color: "inherit",
           "& .MuiTablePagination-toolbar": {
             minHeight: "44px",
             paddingX: 2,
@@ -129,6 +129,7 @@ export default function DocumentTypeTab({ data, isActive }) {
           },
           "& .MuiIconButton-root": {
             padding: "4px",
+            color: "inherit",
           },
         }}
       />
@@ -160,6 +161,12 @@ export default function DocumentTypeTab({ data, isActive }) {
           fullWidth
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          className="bg-white dark:bg-slate-900 rounded-md"
+          sx={{
+            "& .MuiInputBase-root": { color: "inherit" },
+            "& .MuiOutlinedInput-notchedOutline": { borderColor: "currentColor", opacity: 0.2 },
+            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "currentColor", opacity: 0.4 }
+          }}
         />
       </div>
 
@@ -176,7 +183,7 @@ export default function DocumentTypeTab({ data, isActive }) {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <CircularProgress />
@@ -187,9 +194,9 @@ export default function DocumentTypeTab({ data, isActive }) {
               {visibleRows.map((docType) => (
                 <div
                   key={docType.id}
-                  className="border border-gray-100 rounded-xl p-4 shadow-sm flex items-center justify-between gap-3"
+                  className="border border-gray-100 dark:border-slate-800 rounded-xl p-4 shadow-sm flex items-center justify-between gap-3 bg-white dark:bg-slate-800/50"
                 >
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-gray-900 dark:text-white">
                     {docType?.name || "N/A"}
                   </p>
                   <div className="flex items-center gap-2">
@@ -223,23 +230,23 @@ export default function DocumentTypeTab({ data, isActive }) {
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full table-auto">
-                <thead className="bg-gray-100 border-b border-gray-200">
+                <thead className="bg-gray-100 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800">
                   <tr>
-                    <th className="px-4 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs uppercase text-gray-700">
+                    <th className="px-4 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs uppercase text-gray-700 dark:text-gray-300">
                       Name
                     </th>
-                    <th className="px-4 lg:px-6 py-2 sm:py-3 text-center text-[10px] sm:text-xs uppercase text-gray-700">
+                    <th className="px-4 lg:px-6 py-2 sm:py-3 text-center text-[10px] sm:text-xs uppercase text-gray-700 dark:text-gray-300">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                   {visibleRows.map((docType) => (
-                    <tr key={docType.id}>
+                    <tr key={docType.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-4 lg:px-6 py-2 sm:py-3">
                         <Typography
                           variant="body2"
-                          className="text-gray-900 text-sm"
+                          className="text-gray-900 dark:text-slate-200 text-sm"
                         >
                           {docType?.name || "N/A"}
                         </Typography>
@@ -286,7 +293,7 @@ export default function DocumentTypeTab({ data, isActive }) {
             </div>
           )
         ) : (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             {searchQuery ? (
               <p>No document types found matching &quot;{searchQuery}&quot;</p>
             ) : (

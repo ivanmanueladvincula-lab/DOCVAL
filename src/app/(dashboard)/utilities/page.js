@@ -4,10 +4,6 @@ import React, { useState, useEffect } from "react";
 import {
   Button,
   CircularProgress,
-  Stack,
-  Typography,
-  Card,
-  CardContent,
   Container,
 } from "@mui/material";
 import { useProtectedRoute } from "@/helper/ProtectedRoutes";
@@ -42,42 +38,38 @@ export default function utilities() {
   ];
 
   return (
-    <Container maxWidth="lg" className="py-8 min-h-[80vh]">
+    // Added Tailwind dark mode text classes to the main container
+    <Container maxWidth="lg" className="py-8 min-h-[80vh] text-slate-900 dark:text-slate-100">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Utilities</h1>
-          <h2 className="text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Utilities</h1>
+          <h2 className="text-sm text-gray-600 dark:text-gray-400">
             Manage your utilities or create new entries
           </h2>
         </div>
       </div>
 
-      {/* Tabs as Buttons */}
-      <Stack direction="row" spacing={2} mb={3}>
-        {tabs.map((tab) => (
-          <Button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            variant={activeTab === tab.id ? "contained" : "outlined"}
-            size="small"
-            sx={{
-              borderRadius: "8px",
-              textTransform: "none",
-              fontWeight: "bold",
-              ...(activeTab !== tab.id && {
-                color: "#9CA3AF",
-                borderColor: "#9CA3AF",
-                "&:hover": {
-                  borderColor: "#6B7280",
-                  backgroundColor: "#f3f4f6",
-                },
-              }),
-            }}
-          >
-            {tab.label}
-          </Button>
-        ))}
-      </Stack>
+      {/* Modern Segmented Control for Tabs (replaces the outlined buttons) */}
+      <div className="mb-6 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+        <div className="flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-lg min-w-max w-fit">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 text-sm font-bold rounded-md transition-all duration-200 ${
+                  isActive
+                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Tab Content */}
       <div>
@@ -86,26 +78,13 @@ export default function utilities() {
             <CircularProgress />
           </div>
         ) : (
-          <>
-            {activeTab === 0 && (
-              <DivisionTab data={data} isActive={activeTab === 0} />
-            )}
-            {activeTab === 1 && (
-              <ExternalTab data={data} isActive={activeTab === 1} />
-            )}
-            {activeTab === 2 && (
-              <DocumentTypeTab data={data} isActive={activeTab === 2} />
-            )}
-            {activeTab === 3 && (
-              <DocumentClassificationTab
-                data={data}
-                isActive={activeTab === 3}
-              />
-            )}
-            {activeTab === 4 && (
-              <AccountsTab data={data} isActive={activeTab === 4} />
-            )}
-          </>
+          <div className="animate-in fade-in duration-300">
+            {activeTab === 0 && <DivisionTab data={data} isActive={activeTab === 0} />}
+            {activeTab === 1 && <ExternalTab data={data} isActive={activeTab === 1} />}
+            {activeTab === 2 && <DocumentTypeTab data={data} isActive={activeTab === 2} />}
+            {activeTab === 3 && <DocumentClassificationTab data={data} isActive={activeTab === 3} />}
+            {activeTab === 4 && <AccountsTab data={data} isActive={activeTab === 4} />}
+          </div>
         )}
       </div>
     </Container>
