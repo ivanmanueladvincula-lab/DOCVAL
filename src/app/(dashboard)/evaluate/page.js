@@ -103,7 +103,6 @@ export default function files() {
         setLoading(false);
       })
       .catch((err) => {
-        // console.error(err);
         setError("Failed to fetch documents. Please try again.", "error");
         setLoading(false);
       });
@@ -223,7 +222,7 @@ export default function files() {
 
   const paginationSection = (
     <>
-      <Divider />
+      <Divider className="dark:border-slate-800" />
       <TablePagination
         rowsPerPageOptions={[5, 10, 25]}
         component="div"
@@ -233,6 +232,7 @@ export default function files() {
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
         sx={{
+          color: 'inherit', // Forces text to inherit the dark mode white
           "& .MuiTablePagination-toolbar": {
             minHeight: "44px",
             paddingX: 2,
@@ -247,6 +247,7 @@ export default function files() {
           },
           "& .MuiIconButton-root": {
             padding: "4px",
+            color: 'inherit',
           },
         }}
       />
@@ -254,12 +255,12 @@ export default function files() {
   );
 
   return (
-    <Container maxWidth="lg" className="py-8 min-h-[80vh]">
+    <Container maxWidth="lg" className="py-8 min-h-[80vh] text-slate-900 dark:text-slate-100">
       <div className={`${isModalOpen ? "blur-sm" : ""}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Evaluate</h1>
-            <h2 className="text-sm text-gray-600">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Evaluate</h1>
+            <h2 className="text-sm text-gray-600 dark:text-gray-400">
               Manage your evaluated documents or create new evaluations
             </h2>
           </div>
@@ -312,7 +313,7 @@ export default function files() {
                 );
                 setPage(0);
               }}
-              className="cursor-pointer bg-white rounded-lg p-4 border-l-4 border-blue-600 shadow-sm transition-all hover:shadow-md flex-shrink-0"
+              className="cursor-pointer bg-white dark:bg-slate-900 rounded-lg p-4 border-l-4 border-blue-600 dark:border-blue-500 shadow-sm transition-all hover:shadow-md flex-shrink-0"
               style={{
                 width: "260px",
                 minWidth: "220px",
@@ -320,10 +321,10 @@ export default function files() {
               }}
             >
               <div className="flex flex-col justify-between h-full">
-                <p className="text-gray-500 text-sm font-medium">
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">
                   {item?.office ?? "-"}
                 </p>
-                <h3 className="text-3xl font-bold text-gray-900">
+                <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                   {item?.count ?? 0}
                 </h3>
               </div>
@@ -331,7 +332,9 @@ export default function files() {
           ))}
         </Stack>
 
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+        {/* Note: To perfect MUI inputs in dark mode, you generally add an MUI ThemeProvider, 
+            but adding bg-white/dark overrides to the container keeps them legible for now */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end bg-white dark:bg-slate-900 p-4 rounded-lg border border-transparent dark:border-slate-800">
           <div className="md:col-span-2">
             <TextField
               type="text"
@@ -340,6 +343,7 @@ export default function files() {
               fullWidth
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ input: { color: 'inherit' } }}
             />
           </div>
 
@@ -352,6 +356,7 @@ export default function files() {
                   setPage(0);
                 }}
                 displayEmpty
+                sx={{ color: 'inherit' }}
               >
                 <MenuItem value="">All Classifications</MenuItem>
                 {classOption.map((data, index) => (
@@ -372,6 +377,7 @@ export default function files() {
                   setPage(0);
                 }}
                 displayEmpty
+                sx={{ color: 'inherit' }}
               >
                 <MenuItem value="">All Document Types</MenuItem>
                 {typeOption.map((data, index) => (
@@ -412,8 +418,9 @@ export default function files() {
                 setPage(0);
               }}
               renderInput={(params) => (
-                <TextField {...params} placeholder="All Offices" />
+                <TextField {...params} placeholder="All Offices" sx={{ input: { color: 'inherit' } }} />
               )}
+              sx={{ '& .MuiOutlinedInput-root': { color: 'inherit' } }}
             />
             <Tooltip title="Reset Filters" arrow placement="top">
               <IconButton color="error" size="small" onClick={resetFilters}>
@@ -423,7 +430,7 @@ export default function files() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <CircularProgress />
@@ -434,14 +441,14 @@ export default function files() {
                 {visibleRows.map((doc) => (
                   <div
                     key={doc.id}
-                    className="border border-gray-100 rounded-xl p-4 shadow-sm"
+                    className="border border-gray-100 dark:border-slate-800 rounded-xl p-4 shadow-sm bg-white dark:bg-slate-800/50"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-base font-semibold text-gray-900">
+                        <p className="text-base font-semibold text-gray-900 dark:text-white">
                           {doc.title}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {doc.sender_office || "-"}
                         </p>
                       </div>
@@ -480,29 +487,29 @@ export default function files() {
                         </Tooltip>
                       </div>
                     </div>
-                    <Divider className="my-3" />
-                    <div className="grid grid-cols-2 gap-3 text-xs text-gray-600">
+                    <Divider className="my-3 dark:border-slate-700" />
+                    <div className="grid grid-cols-2 gap-3 text-xs text-gray-600 dark:text-gray-400">
                       <div>
-                        <p className="text-gray-500 uppercase tracking-wide text-[10px]">
+                        <p className="text-gray-500 dark:text-gray-500 uppercase tracking-wide text-[10px]">
                           Classification
                         </p>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 dark:text-gray-200">
                           {doc.doc_class || "-"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 uppercase tracking-wide text-[10px]">
+                        <p className="text-gray-500 dark:text-gray-500 uppercase tracking-wide text-[10px]">
                           Document Type
                         </p>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 dark:text-gray-200">
                           {doc.doc_type || "-"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 uppercase tracking-wide text-[10px]">
+                        <p className="text-gray-500 dark:text-gray-500 uppercase tracking-wide text-[10px]">
                           Date Received
                         </p>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 dark:text-gray-200">
                           {doc.date_created
                             ? new Date(doc.date_created)
                                 .toISOString()
@@ -511,10 +518,10 @@ export default function files() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 uppercase tracking-wide text-[10px]">
+                        <p className="text-gray-500 dark:text-gray-500 uppercase tracking-wide text-[10px]">
                           Reference No.
                         </p>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 dark:text-gray-200">
                           {doc.reference_no || "-"}
                         </p>
                       </div>
@@ -526,12 +533,12 @@ export default function files() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full table-auto">
-                  <thead className="bg-gray-100 border-b border-gray-200">
+                  <thead className="bg-gray-100 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800">
                     <tr>
                       {headerCells.map((cell, index) => (
                         <th
                           key={cell}
-                          className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold uppercase text-gray-700 bg-gray-50 ${columnVisibility[index]}`}
+                          className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold uppercase text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-transparent ${columnVisibility[index]}`}
                         >
                           <div className="flex items-center gap-2 ">
                             {cell}
@@ -589,33 +596,33 @@ export default function files() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                     {visibleRows.map((doc, index) => (
-                      <tr key={index} className="align-top">
+                      <tr key={index} className="align-top hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="px-3 sm:px-4 lg:px-6 py-3">
                           <div className="flex flex-col">
                             <Typography
                               variant="body2"
-                              className="font-semibold text-gray-900 text-sm sm:text-base"
+                              className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base"
                             >
                               {doc.title}
                             </Typography>
                             <Typography
                               variant="caption"
-                              className="text-gray-500 mt-1 text-xs sm:text-sm"
+                              className="text-gray-500 dark:text-gray-400 mt-1 text-xs sm:text-sm"
                             >
                               {doc.sender_office}
                             </Typography>
                             <div className="flex flex-wrap gap-2 mt-3 text-[10px] text-gray-600 sm:hidden">
                               {(doc.doc_class || doc.doc_type) && (
-                                <span className="bg-gray-100 px-2 py-1 rounded-full">
+                                <span className="bg-gray-100 dark:bg-slate-800 dark:text-gray-300 px-2 py-1 rounded-full">
                                   {[doc.doc_class, doc.doc_type]
                                     .filter(Boolean)
                                     .join(" • ")}
                                 </span>
                               )}
                               {doc.date_created && (
-                                <span className="bg-blue-50 px-2 py-1 rounded-full text-blue-600">
+                                <span className="bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full text-blue-600 dark:text-blue-400">
                                   {
                                     new Date(doc.date_created)
                                       .toISOString()
@@ -627,17 +634,17 @@ export default function files() {
                           </div>
                         </td>
                         <td
-                          className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 ${columnVisibility[1]}`}
+                          className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 ${columnVisibility[1]}`}
                         >
                           {doc.doc_class || "-"}
                         </td>
                         <td
-                          className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 ${columnVisibility[2]}`}
+                          className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 ${columnVisibility[2]}`}
                         >
                           {doc.doc_type || "-"}
                         </td>
                         <td
-                          className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 ${columnVisibility[3]}`}
+                          className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 ${columnVisibility[3]}`}
                         >
                           {doc.date_created
                             ? new Date(doc.date_created)
@@ -695,7 +702,7 @@ export default function files() {
               </div>
             )
           ) : (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               {searchQuery ? (
                 <p>No documents found matching &quot;{searchQuery}&quot;</p>
               ) : (

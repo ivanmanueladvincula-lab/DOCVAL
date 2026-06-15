@@ -33,6 +33,21 @@ import { useError } from "@/helper/ErrorContext";
 import LoadingDialog from "@/components/LoadingDialog";
 import ConfirmExternalDocumentDialog from "./components/ConfirmExternalDocumentDialog";
 
+// Reusable styling for MUI inputs to adapt to Tailwind Dark Mode
+const inputSx = {
+  "& .MuiInputBase-root": { color: "inherit" },
+  "& .MuiInputLabel-root": { color: "inherit", opacity: 0.7 },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: "currentColor", opacity: 0.3 },
+  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "currentColor", opacity: 0.5 },
+  "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#2563EB", opacity: 1 },
+  "& .MuiSvgIcon-root": { color: "inherit", opacity: 0.7 },
+};
+
+// Reusable styling for MUI Dropdown Menus
+const dropdownPaperProps = {
+  className: "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700",
+};
+
 export default function NewFile() {
   const { session, status } = useProtectedRoute();
   const { setError } = useError();
@@ -69,7 +84,6 @@ export default function NewFile() {
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-  // ✅ Generate reference number on page load
   const generateRefNo = async () => {
     setRefLoading(true);
     try {
@@ -215,7 +229,7 @@ export default function NewFile() {
 
   const handleReset = () => {
     setFormData({
-      refno: formData.refno, // ✅ keep the generated ref no
+      refno: formData.refno,
       title: "",
       classification: "",
       classification_name: "",
@@ -285,65 +299,67 @@ export default function NewFile() {
   }, [formData.office_type, offices]);
 
   return (
-    <Container maxWidth="md" sx={{ py: 6 }}>
-      <Card sx={{ borderRadius: 2 }}>
+    <Container maxWidth="md" sx={{ py: 6 }} className="text-slate-900 dark:text-slate-100">
+      <Card 
+        sx={{ borderRadius: 2, bgcolor: "transparent", backgroundImage: "none" }}
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"
+      >
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-            <IconButton onClick={() => router.back()} size="small">
+            <IconButton onClick={() => router.back()} size="small" sx={{ color: "inherit" }}>
               <KeyboardBackspaceRoundedIcon />
             </IconButton>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, color: "text.primary" }}>
+            <Typography variant="h4" component="h1" className="font-bold text-slate-900 dark:text-white">
               Upload new document
             </Typography>
           </Box>
 
           <form onSubmit={handleSubmit}>
             <Stack spacing={3}>
-              <Typography variant="body1" color="textDisabled" fontWeight="700">
+              <Typography variant="body1" className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-sm">
                 Document Upload
               </Typography>
+              
               {validation.file.valid === false && (
-                <Alert severity="error">{validation.file.message}</Alert>
+                <Alert severity="error" className="dark:bg-red-900/20 dark:text-red-400 dark:border dark:border-red-900/50">
+                  {validation.file.message}
+                </Alert>
               )}
+
               {formData.file ? (
                 <Chip
                   label={`${formData.file.name} (${(formData.file.size / (1024 * 1024)).toFixed(2)} MB)`}
                   variant="outlined"
                   icon={<PictureAsPdfRoundedIcon color="error" />}
-                  sx={{ borderStyle: "dashed", bgcolor: "#f7f7f7ff" }}
+                  className="bg-slate-50 dark:bg-slate-800/50 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 py-5"
                   onDelete={() => setFormData({ ...formData, file: null })}
+                  sx={{ "& .MuiChip-deleteIcon": { color: "inherit", opacity: 0.7, "&:hover": { opacity: 1 } } }}
                 />
               ) : (
                 <Box
-                  sx={{
-                    border: "2px dashed",
-                    borderColor: dragOver ? "primary.main" : "divider",
-                    borderRadius: 1,
-                    p: 3,
-                    textAlign: "center",
-                    cursor: "pointer",
-                    transition: "all 0.3s ease",
-                    backgroundColor: dragOver ? "action.selected" : "action.hover",
-                    "&:hover": { borderColor: "primary.main", backgroundColor: "action.selected" },
-                  }}
                   component="label"
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
+                    dragOver
+                      ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                      : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 hover:border-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
                 >
                   <input type="file" hidden onChange={handleFileChange} accept=".pdf" />
-                  <CloudUploadIcon sx={{ fontSize: 40, color: "primary.main", mb: 1 }} />
-                  <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.5 }}>
+                  <CloudUploadIcon className="text-blue-600 dark:text-blue-500 text-5xl mb-2" />
+                  <Typography variant="body1" className="font-medium text-slate-700 dark:text-slate-200 mb-1">
                     Drag and drop or click to upload
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  <Typography variant="caption" className="text-slate-500 dark:text-slate-400">
                     PDF (Max 10MB)
                   </Typography>
                 </Box>
               )}
 
-              <Typography variant="body1" color="textDisabled" fontWeight="700">
+              <Typography variant="body1" className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-sm pt-2">
                 Document Details
               </Typography>
+              
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                {/* ✅ Auto-generated Reference No. - Read Only */}
                 <TextField
                   label="Reference No."
                   name="refno"
@@ -357,9 +373,9 @@ export default function NewFile() {
                     endAdornment: (
                       <InputAdornment position="end">
                         {refLoading ? (
-                          <CircularProgress size={16} />
+                          <CircularProgress size={16} sx={{ color: "inherit" }} />
                         ) : (
-                          <IconButton size="small" onClick={generateRefNo} title="Regenerate">
+                          <IconButton size="small" onClick={generateRefNo} title="Regenerate" sx={{ color: "inherit" }}>
                             <AutorenewRoundedIcon fontSize="small" />
                           </IconButton>
                         )}
@@ -367,10 +383,8 @@ export default function NewFile() {
                     ),
                   }}
                   sx={{
-                    "& .MuiInputBase-input": {
-                      color: "primary.main",
-                      fontWeight: 700,
-                    },
+                    ...inputSx,
+                    "& .MuiInputBase-input": { color: "#2563EB", fontWeight: 700 }, // Keep the blue emphasis
                   }}
                 />
                 <TextField
@@ -383,8 +397,10 @@ export default function NewFile() {
                   variant="outlined"
                   size="small"
                   required
+                  sx={inputSx}
                 />
               </Stack>
+              
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <Autocomplete
                   options={classifications}
@@ -395,7 +411,8 @@ export default function NewFile() {
                     setFormData({ ...formData, classification: newValue ? newValue.id : "", classification_name: newValue ? newValue.name : "" });
                   }}
                   noOptionsText="No classifications available"
-                  renderInput={(params) => <TextField {...params} label="Classification" placeholder="Search Classification" required />}
+                  componentsProps={{ paper: dropdownPaperProps }}
+                  renderInput={(params) => <TextField {...params} label="Classification" placeholder="Search Classification" required sx={inputSx} />}
                   fullWidth
                 />
                 <Autocomplete
@@ -407,24 +424,34 @@ export default function NewFile() {
                     setFormData({ ...formData, type: newValue ? newValue.id : "", type_name: newValue ? newValue.name : "" });
                   }}
                   noOptionsText="No types available"
-                  renderInput={(params) => <TextField {...params} label="Type of Document" placeholder="Search Type" required />}
+                  componentsProps={{ paper: dropdownPaperProps }}
+                  renderInput={(params) => <TextField {...params} label="Type of Document" placeholder="Search Type" required sx={inputSx} />}
                   fullWidth
                 />
               </Stack>
 
-              <Typography variant="body1" color="textDisabled" fontWeight="700">
+              <Typography variant="body1" className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-sm pt-2">
                 Sender Details
               </Typography>
+              
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                {session?.user?.role.some((role) => role.name === "CRRU") && (
-                  <FormControl fullWidth size="small" sx={{ flex: 1 }} required>
-                    <InputLabel id="office-type-label">Office Type</InputLabel>
-                    <Select labelId="office-type-label" label="Office Type" name="office_type" onChange={handleInputChange} value={formData.office_type}>
+                {session?.user?.role.some((role) => role.name === "CRRU" || role.name === "crru" || role.name === "Admin" || role.name === "admin") && (
+                  <FormControl fullWidth size="small" sx={{ flex: 1, ...inputSx }} required>
+                    <InputLabel id="office-type-label" sx={{ color: "inherit" }}>Office Type</InputLabel>
+                    <Select 
+                      labelId="office-type-label" 
+                      label="Office Type" 
+                      name="office_type" 
+                      onChange={handleInputChange} 
+                      value={formData.office_type}
+                      MenuProps={{ PaperProps: dropdownPaperProps }}
+                    >
                       <MenuItem value="internal">Internal (DICT)</MenuItem>
                       <MenuItem value="external">External</MenuItem>
                     </Select>
                   </FormControl>
                 )}
+                
                 <Autocomplete
                   options={filteredOffices}
                   size="small"
@@ -442,10 +469,12 @@ export default function NewFile() {
                     setFormData({ ...formData, sender_office: newValue ? newValue.id : "", sender_office_name: newValue ? newValue.division_name : "" });
                   }}
                   noOptionsText={`No ${formData.office_type === "internal" ? "division" : "office"} available`}
-                  renderInput={(params) => <TextField {...params} label="Sender Office" placeholder="Search Sender Office" required />}
+                  componentsProps={{ paper: dropdownPaperProps }}
+                  renderInput={(params) => <TextField {...params} label="Sender Office" placeholder="Search Sender Office" required sx={inputSx} />}
                   fullWidth
                 />
-                {session?.user?.role.some((role) => role.name === "CRRU") && formData.office_type === "external" && (
+                
+                {session?.user?.role.some((role) => role.name === "CRRU" || role.name === "crru" || role.name === "Admin" || role.name === "admin") && formData.office_type === "external" && (
                   <Autocomplete
                     options={internalOffices}
                     size="small"
@@ -463,22 +492,24 @@ export default function NewFile() {
                       setFormData({ ...formData, receiving_office: newValue ? newValue.id : "", receiving_office_name: newValue ? newValue.division_name : "" });
                     }}
                     noOptionsText="No internal offices available"
-                    renderInput={(params) => <TextField {...params} label="Receiving Office" placeholder="Search Receiving Office" required />}
+                    componentsProps={{ paper: dropdownPaperProps }}
+                    renderInput={(params) => <TextField {...params} label="Receiving Office" placeholder="Search Receiving Office" required sx={inputSx} />}
                     fullWidth
                   />
                 )}
               </Stack>
+              
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <TextField label="Email" name="sender_email" value={formData.sender_email} onChange={handleInputChange} placeholder="e.g., john@example.com" fullWidth type="email" variant="outlined" size="small" required />
-                <TextField label="Contact Person" name="sender_person" value={formData.sender_person} onChange={handleInputChange} placeholder="e.g., John Doe" fullWidth variant="outlined" size="small" required />
-                <TextField label="Phone Number" name="sender_phone" value={formData.sender_phone} onChange={handleInputChange} placeholder="e.g., 0917*******" fullWidth variant="outlined" size="small" required />
+                <TextField label="Email" name="sender_email" value={formData.sender_email} onChange={handleInputChange} placeholder="e.g., john@example.com" fullWidth type="email" variant="outlined" size="small" required sx={inputSx} />
+                <TextField label="Contact Person" name="sender_person" value={formData.sender_person} onChange={handleInputChange} placeholder="e.g., John Doe" fullWidth variant="outlined" size="small" required sx={inputSx} />
+                <TextField label="Phone Number" name="sender_phone" value={formData.sender_phone} onChange={handleInputChange} placeholder="e.g., 0917*******" fullWidth variant="outlined" size="small" required sx={inputSx} />
               </Stack>
 
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <Button type="button" variant="outlined" color="error" fullWidth onClick={handleReset} disabled={loading}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ pt: 2 }}>
+                <Button type="button" variant="outlined" color="error" fullWidth onClick={handleReset} disabled={loading} sx={{ py: 1 }}>
                   Reset
                 </Button>
-                <Button type="submit" variant="contained" fullWidth loading={loading} disableElevation>
+                <Button type="submit" variant="contained" fullWidth loading={loading} disableElevation sx={{ py: 1, bgcolor: "#2563EB", "&:hover": { bgcolor: "#1d4ed8" } }}>
                   Continue
                 </Button>
                 {loading && (
@@ -491,7 +522,9 @@ export default function NewFile() {
           </form>
         </CardContent>
       </Card>
+      
       <LoadingDialog open={loading} />
+      
       <ConfirmExternalDocumentDialog
         open={confirmDialogOpen}
         setOpen={setConfirmDialogOpen}
