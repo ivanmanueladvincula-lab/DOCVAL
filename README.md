@@ -512,6 +512,8 @@ The dynamic renderer automatically works across:
 
 | Name    | Role                  | Email                           |
 | ------- | --------------------- | ------------------------------- |
+| Ivan    | Fullstack Development  | ivanmanueladvincula@gmail.com  |
+| Harvy   | Fullstack Development/Documentation | hgbgnls@gmail.com |
 | Arvie   | Documentation         | aezyy.yyzea@gmail.com           |
 | Edward  | Documentation         | johnedwardsolaybar263@gmail.com |
 | Kenjiro | AI & Documentation    | TakadaKenjiro123@gmail.com      |
